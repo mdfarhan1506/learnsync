@@ -45,14 +45,36 @@ docker compose up --build
    - Start Command: `npm start`
    - Env: `VITE_API_URL=https://<your-backend-domain>.up.railway.app`
 
-### 2. Render
-1. **Backend Web Service** (Root: `backend`, Environment: `Node`):
-   - Build Command: `npm install && npm run build`
-   - Start Command: `npm start`
-2. **Frontend Static Site** (Root: `frontend`):
-   - Build Command: `npm install && npm run build`
-   - Publish Directory: `dist`
-   - Env: `VITE_API_URL=https://<your-render-backend-url>`
+### 2. Render Deployment
+
+#### Option A: 1-Click Render Blueprint (Recommended)
+1. In the [Render Dashboard](https://dashboard.render.com), click **New +** → **Blueprint**.
+2. Connect your GitHub repository (`learnsync`).
+3. Render will read [`render.yaml`](file:///Users/mdfarhan/Documents/learnsync/render.yaml) and automatically create both the backend Web Service and the frontend Static Site with all environment variables wired up.
+
+#### Option B: Unified Single Web Service (Free Tier Friendly)
+1. Create a **Web Service** on Render connected to the repository root.
+2. Settings:
+   - **Environment**: `Node`
+   - **Build Command**: `npm install && npm run build && npx prisma db push`
+   - **Start Command**: `npm start`
+   - **Health Check Path**: `/health`
+   - **Environment Variables**:
+     - `DATABASE_URL`: `file:./prisma/learnsync.db`
+     - `JWT_SECRET`: `learnsync-demo-secret-key-2024`
+     - `FRONTEND_URL`: `*`
+3. The backend will automatically serve both the React frontend UI and the REST API from a single Render URL!
+
+#### Option C: Separate Services (Backend API + Frontend Static Site)
+1. **Backend Web Service** (Root Directory: `backend`):
+   - **Build Command**: `npm install && npm run build && npx prisma db push`
+   - **Start Command**: `npm start`
+   - **Health Check Path**: `/health`
+   - **Environment Variables**: `DATABASE_URL=file:./prisma/learnsync.db`, `JWT_SECRET=...`, `FRONTEND_URL=*`
+2. **Frontend Static Site** (Root Directory: `frontend`):
+   - **Build Command**: `npm install && npm run build`
+   - **Publish Directory**: `dist`
+   - **Environment Variables**: `VITE_API_URL=https://<your-backend-service>.onrender.com`
 
 ### 3. Vercel
 Deploy the monorepo using the included [vercel.json](file:///Users/mdfarhan/Documents/learnsync/vercel.json) or deploy `/frontend` with `VITE_API_URL` pointing to your hosted backend.

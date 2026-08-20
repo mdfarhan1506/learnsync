@@ -1,10 +1,15 @@
 import axios from 'axios';
 
-const rawBaseUrl = import.meta.env.VITE_API_URL || '/api';
-const baseURL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+// Normalize API URL from environment variable or fallback to '/api'
+const getBaseURL = () => {
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (!envUrl) return '/api';
+  const cleanUrl = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
 
 const api = axios.create({
-  baseURL: baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`,
+  baseURL: getBaseURL(),
   headers: { 'Content-Type': 'application/json' },
 });
 
