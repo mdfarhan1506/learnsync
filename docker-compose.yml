@@ -11,10 +11,16 @@ services:
       - DATABASE_URL=file:./prisma/learnsync.db
       - JWT_SECRET=learnsync-demo-secret-change-in-prod
       - PORT=3001
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000,http://localhost:80
     volumes:
       - ./backend/prisma:/app/prisma
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   frontend:
     build:
@@ -23,7 +29,8 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

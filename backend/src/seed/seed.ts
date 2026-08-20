@@ -6,7 +6,7 @@ const DEMO_PASSWORD_HASH = bcrypt.hashSync('demo1234', 10);
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedDatabase() {
   console.log('Starting seed...');
 
   // 1. Clear existing data
@@ -468,11 +468,13 @@ async function main() {
   console.log('Seed completed successfully!');
 }
 
-main()
-  .catch(e => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  seedDatabase()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

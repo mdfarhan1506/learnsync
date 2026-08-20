@@ -1,9 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { mockAI } from '../ai/mockAI';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // List groups for a class
 router.get('/class/:classId', async (req: Request, res: Response) => {

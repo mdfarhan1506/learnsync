@@ -19,45 +19,43 @@ Railway / Monorepo
 
 ---
 
-## 🚂 Railway Deployment Guide
+## 🐳 Docker Deployment (One-Command Run)
 
-Deploy both services independently from the single GitHub repository (`mdfarhan1506/learnsync`):
+Run both the frontend and backend together with Docker Compose:
 
-### Step 1: Create a Railway Project
-1. Log in to [Railway](https://railway.app/).
-2. Click **+ New Project** and name it `LearnSync`.
-
-### Step 2: Deploy Backend Service (`/backend`)
-1. Click **+ New Service** → **GitHub Repo** → select `mdfarhan1506/learnsync`.
-2. In the service **Settings**:
-   - **Service Name**: `learnsync-backend`
-   - **Root Directory**: `/backend`
-   - **Build Command**: `npm run build` *(runs `prisma generate && tsc`)*
-   - **Start Command**: `npm start` *(runs `node dist/index.js`)*
-3. In **Variables**, add:
-   - `DATABASE_URL`: `file:./prisma/learnsync.db` *(or your PostgreSQL / MySQL connection string)*
-   - `JWT_SECRET`: `learnsync-super-secret-jwt-key-2024-hackathon` *(or your secure random string)*
-   - `JWT_REFRESH_SECRET`: `learnsync-refresh-secret-2024`
-   - `NODE_ENV`: `production`
-   - `FRONTEND_URL`: `*` *(or update to your frontend domain once generated, e.g. `https://learnsync-frontend.up.railway.app`)*
-4. Under **Networking**, click **Generate Domain** (e.g. `https://learnsync-backend.up.railway.app`).
-
-### Step 3: Deploy Frontend Service (`/frontend`)
-1. In the same `LearnSync` project, click **+ New Service** → **GitHub Repo** → select `mdfarhan1506/learnsync`.
-2. In the service **Settings**:
-   - **Service Name**: `learnsync-frontend`
-   - **Root Directory**: `/frontend`
-   - **Build Command**: `npm run build` *(runs `tsc -b && vite build`)*
-   - **Start Command**: `npm start` *(serves static build via `serve -s dist -l $PORT`)*
-3. In **Variables**, add:
-   - `VITE_API_URL`: The backend domain generated in Step 2 (e.g. `https://learnsync-backend.up.railway.app`)
-4. Under **Networking**, click **Generate Domain** (e.g. `https://learnsync-frontend.up.railway.app`).
-
-### Step 4: Configure CORS on Backend
-Once your frontend domain is active (e.g. `https://learnsync-frontend.up.railway.app`), update `FRONTEND_URL` in the backend service variables:
+```bash
+docker compose up --build
 ```
-FRONTEND_URL=https://learnsync-frontend.up.railway.app
-```
+
+- **Frontend**: Accessible at [http://localhost:3000](http://localhost:3000)
+- **Backend API**: Accessible at [http://localhost:3001](http://localhost:3001)
+- **Health Check**: [http://localhost:3001/api/health](http://localhost:3001/api/health)
+
+---
+
+## 🚀 Deployment Platforms
+
+### 1. Railway (Recommended)
+1. **Backend Service** (`/backend`):
+   - Build Command: `npm run build`
+   - Start Command: `npm start`
+   - Env: `DATABASE_URL=file:./prisma/learnsync.db`, `JWT_SECRET=...`, `FRONTEND_URL=*`
+2. **Frontend Service** (`/frontend`):
+   - Build Command: `npm run build`
+   - Start Command: `npm start`
+   - Env: `VITE_API_URL=https://<your-backend-domain>.up.railway.app`
+
+### 2. Render
+1. **Backend Web Service** (Root: `backend`, Environment: `Node`):
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start`
+2. **Frontend Static Site** (Root: `frontend`):
+   - Build Command: `npm install && npm run build`
+   - Publish Directory: `dist`
+   - Env: `VITE_API_URL=https://<your-render-backend-url>`
+
+### 3. Vercel
+Deploy the monorepo using the included [vercel.json](file:///Users/mdfarhan/Documents/learnsync/vercel.json) or deploy `/frontend` with `VITE_API_URL` pointing to your hosted backend.
 
 ---
 

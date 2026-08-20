@@ -1,20 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { execSync } from 'child_process';
-import path from 'path';
+import { seedDatabase } from '../seed/seed';
 
 const router = Router();
 
 // Reset demo to original seeded state
 router.post('/reset', async (_req: Request, res: Response) => {
   try {
-    const seedPath = path.resolve(__dirname, '../seed/seed.ts');
-    execSync(`npx ts-node ${seedPath}`, {
-      cwd: path.resolve(__dirname, '../../'),
-      timeout: 60000,
-      stdio: 'pipe'
-    });
+    await seedDatabase();
     res.json({ success: true, message: 'Demo data has been reset to original state.' });
   } catch (error: any) {
+    console.error('Demo reset error:', error);
     res.status(500).json({ error: 'Failed to reset demo', details: error.message });
   }
 });

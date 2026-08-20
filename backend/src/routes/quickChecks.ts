@@ -1,9 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { mockAI } from '../ai/mockAI';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Submit quick check results for a group
 router.post('/', async (req: Request, res: Response) => {

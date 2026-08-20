@@ -1,13 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const groupId = req.query.groupI as string as string | undefined;
-    const interventionId = req.query.interventionI as string as string | undefined;
+    const groupId = (req.query.groupId || req.query.groupI) as string | undefined;
+    const interventionId = (req.query.interventionId || req.query.interventionI) as string | undefined;
 
     const activities = await prisma.interventionActivity.findMany({
       where: {
