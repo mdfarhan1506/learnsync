@@ -6,14 +6,68 @@ Teacher-first classroom orchestration platform that turns assessment data into t
 
 ---
 
-## Quick Start (Development)
+## 🏗️ Architecture
+
+LEARNsync is structured as a clean monorepo with two independent services:
+
+```
+Railway / Monorepo
+└── LearnSync (Project)
+    ├── Frontend Service → /frontend (React + Vite + TypeScript + Tailwind)
+    └── Backend Service  → /backend  (Node.js + Express + Prisma ORM)
+```
+
+---
+
+## 🚂 Railway Deployment Guide
+
+Deploy both services independently from the single GitHub repository (`mdfarhan1506/learnsync`):
+
+### Step 1: Create a Railway Project
+1. Log in to [Railway](https://railway.app/).
+2. Click **+ New Project** and name it `LearnSync`.
+
+### Step 2: Deploy Backend Service (`/backend`)
+1. Click **+ New Service** → **GitHub Repo** → select `mdfarhan1506/learnsync`.
+2. In the service **Settings**:
+   - **Service Name**: `learnsync-backend`
+   - **Root Directory**: `/backend`
+   - **Build Command**: `npm run build` *(runs `prisma generate && tsc`)*
+   - **Start Command**: `npm start` *(runs `node dist/index.js`)*
+3. In **Variables**, add:
+   - `DATABASE_URL`: `file:./prisma/learnsync.db` *(or your PostgreSQL / MySQL connection string)*
+   - `JWT_SECRET`: `learnsync-super-secret-jwt-key-2024-hackathon` *(or your secure random string)*
+   - `JWT_REFRESH_SECRET`: `learnsync-refresh-secret-2024`
+   - `NODE_ENV`: `production`
+   - `FRONTEND_URL`: `*` *(or update to your frontend domain once generated, e.g. `https://learnsync-frontend.up.railway.app`)*
+4. Under **Networking**, click **Generate Domain** (e.g. `https://learnsync-backend.up.railway.app`).
+
+### Step 3: Deploy Frontend Service (`/frontend`)
+1. In the same `LearnSync` project, click **+ New Service** → **GitHub Repo** → select `mdfarhan1506/learnsync`.
+2. In the service **Settings**:
+   - **Service Name**: `learnsync-frontend`
+   - **Root Directory**: `/frontend`
+   - **Build Command**: `npm run build` *(runs `tsc -b && vite build`)*
+   - **Start Command**: `npm start` *(serves static build via `serve -s dist -l $PORT`)*
+3. In **Variables**, add:
+   - `VITE_API_URL`: The backend domain generated in Step 2 (e.g. `https://learnsync-backend.up.railway.app`)
+4. Under **Networking**, click **Generate Domain** (e.g. `https://learnsync-frontend.up.railway.app`).
+
+### Step 4: Configure CORS on Backend
+Once your frontend domain is active (e.g. `https://learnsync-frontend.up.railway.app`), update `FRONTEND_URL` in the backend service variables:
+```
+FRONTEND_URL=https://learnsync-frontend.up.railway.app
+```
+
+---
+
+## 💻 Local Development
 
 ### Prerequisites
 - Node.js 18+
 - npm 9+
 
-### 1. Start the Backend
-
+### Terminal 1 — Backend (Port 3001)
 ```bash
 cd backend
 npm install
@@ -22,110 +76,74 @@ npm run seed      # Seeds 40 demo students + groups
 npm run dev       # Starts on http://localhost:3001
 ```
 
-### 2. Start the Frontend
-
+### Terminal 2 — Frontend (Port 3000)
 ```bash
 cd frontend
 npm install
 npm run dev       # Starts on http://localhost:3000
 ```
 
-### 3. Login with Demo Account
-
-| Field    | Value                       |
-|----------|-----------------------------|
-| Email    | `teacher@learnsync.demo`    |
-| Password | `demo1234`                  |
-| Class    | Class 5A · Grade 5 Maths   |
-| Students | 40 (all fictional)          |
-
----
-
-## Demo Walkthrough
-
-**The core loop: Assess → Diagnose → Group → Intervene → Quick Check → Update**
-
-1. **Dashboard** — See today's classroom plan with 4 learning groups already seeded
-2. **Groups** — See WHY each group was formed (click the "WHY?" button)
-3. **Group Detail** — Generate an AI intervention for the "Needs Support" group
-4. **Intervention** — Walk through the step-by-step activity with a built-in timer
-5. **Quick Check** — Mark each student as Mastered / Developing / Needs Support
-6. **Progress** — See learning profiles updated in real-time with charts
-7. **Assessments** — Create a new assessment (3-step wizard: Configure → Review → Deliver)
-8. **Rules** — Customise mastery thresholds (default: Mastered ≥ 80%)
+### Demo Login Credentials
+| Field | Value |
+|---|---|
+| **Email** | `teacher@learnsync.demo` |
+| **Password** | `demo1234` |
+| **Class** | Class 5A · Grade 5 Maths |
+| **Students** | 40 fictional students |
 
 ---
 
-## Architecture
+## 🔄 Core Classroom Loop
 
 ```
-learnsync/
-├── backend/              Node.js + Express + TypeScript + Prisma (SQLite)
-│   ├── src/
-│   │   ├── ai/           mockAI.ts — Grade 5 Math question bank
-│   │   ├── engine/       diagnosisEngine.ts + groupingEngine.ts
-│   │   ├── routes/       REST API routes
-│   │   └── seed/         Demo data with 40 Indian student names
-│   └── prisma/           schema.prisma + learnsync.db
-│
-├── frontend/             React 18 + Vite + TypeScript + Tailwind
-│   └── src/
-│       ├── pages/        17 pages (Dashboard, Groups, Assessments, Progress…)
-│       ├── services/     api.ts — Axios service layer
-│       └── stores/       Zustand (auth + class state)
-│
-├── docker-compose.yml    One-command production start
-└── sample-students.csv   Import students via CSV
+ASSESS → DIAGNOSE → GROUP → PLAN → INTERVENE → QUICK CHECK → UPDATE → NEXT ACTION
 ```
 
-## API Endpoints
+1. **Dashboard**: Daily classroom overview with 4 auto-generated learning groups.
+2. **Groups**: View transparent "WHY THIS GROUP?" explanations and skill gaps.
+3. **Intervention**: Timed 10-minute step-by-step facilitation scripts for targeted skills.
+4. **Quick Check**: 1-tap evaluation (Mastered / Still Needs Practice / Needs Support).
+5. **Progress**: Real-time mastery analytics and learning timelines.
+6. **Assessments Wizard**: 3-step creation with AI question generation.
+7. **Rules Engine**: Customizable mastery thresholds and group parameters.
 
-| Method | Path                                   | Description                          |
-|--------|----------------------------------------|--------------------------------------|
-| POST   | `/api/auth/login`                      | Login, returns JWT                   |
-| GET    | `/api/classes`                         | List classes                         |
-| GET    | `/api/classes/:id`                     | Class detail + students + groups     |
-| GET    | `/api/assessments`                     | List assessments                     |
-| POST   | `/api/assessments/:id/generate-questions` | AI question generation            |
-| GET    | `/api/assessments/:id/analysis`        | Skill-level results breakdown        |
-| GET    | `/api/groups/class/:classId`           | Groups for a class                   |
-| POST   | `/api/groups/:id/generate-intervention` | AI intervention + other activities  |
-| POST   | `/api/quick-checks`                    | Submit quick check, updates profiles |
-| GET    | `/api/progress/class/:classId`         | Class-level progress overview        |
-| GET    | `/api/progress/student/:studentId`     | Student profile + skill history      |
-| PUT    | `/api/rules/:classId`                  | Update mastery thresholds            |
-| POST   | `/api/demo/reset`                      | Reset to original seeded state       |
+---
 
-## Stack
+## 🛠️ API Endpoints
 
-| Layer      | Tech                                                         |
-|------------|--------------------------------------------------------------|
-| Frontend   | React 18, Vite, TypeScript, Tailwind CSS, Recharts, Zustand  |
-| Backend    | Node.js, Express, TypeScript, Prisma ORM                     |
-| Database   | SQLite (file-based, zero config)                             |
-| AI         | Mock AI (Grade 5 Math content) + OpenAI fallthrough          |
-| Auth       | JWT (bcryptjs passwords)                                     |
-| DevOps     | Docker Compose                                               |
+| Method | Path | Description |
+|---|---|---|
+| GET | `/` | Service health & ping |
+| GET | `/api/health` | API health check |
+| POST | `/api/auth/login` | Teacher authentication |
+| GET | `/api/classes` | Class list & overview |
+| GET | `/api/classes/:id` | Class detail with students & assessments |
+| GET | `/api/groups/class/:classId` | Active learning groups with WHY explanations |
+| POST | `/api/groups/:id/generate-intervention` | AI-generated intervention activity |
+| POST | `/api/quick-checks` | Submit quick check results & update profiles |
+| GET | `/api/progress/class/:classId` | Class mastery distribution & history |
+| GET | `/api/progress/student/:studentId` | Student skill profile & learning timeline |
+| PUT | `/api/rules/:classId` | Update skill mastery thresholds |
+| POST | `/api/demo/reset` | Restore initial seeded demo state |
 
-## Environment Variables (Backend)
+---
 
-```env
-DATABASE_URL=file:./prisma/learnsync.db
-JWT_SECRET=your-secret-key
-PORT=3001
-FRONTEND_URL=http://localhost:3000
-OPENAI_API_KEY=       # Optional — activates real LLM if present
-```
+## ⚙️ Environment Variables Summary
 
-## Reset Demo Data
+### Frontend (`/frontend`)
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_API_URL` | Yes | Backend URL (e.g. `https://learnsync-backend.up.railway.app` in prod, `http://localhost:3001` in dev) |
 
-```bash
-# Via API (from the UI header "Reset Demo" button)
-POST /api/demo/reset
-
-# Via CLI
-cd backend && npm run seed
-```
+### Backend (`/backend`)
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Database connection string (`file:./prisma/learnsync.db` or PostgreSQL URL) |
+| `JWT_SECRET` | Yes | Secret key for signing authentication JWTs |
+| `JWT_REFRESH_SECRET` | No | Secret key for refresh tokens |
+| `PORT` | Auto | Port provided dynamically by Railway (defaults to 3001 locally) |
+| `FRONTEND_URL` | Yes | Allowed frontend origin(s) for CORS |
+| `OPENAI_API_KEY` | No | Optional OpenAI API key (falls back to built-in Mock AI if omitted) |
 
 ---
 

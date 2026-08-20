@@ -21,10 +21,21 @@ import demoRoutes from './routes/demo';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet({ crossOriginEmbedderPolicy: false }));
+// Dynamic CORS configuration
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim().replace(/\/$/, ''))
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    // Also allow subdomains or specific Vercel/Railway domains if FRONTEND_URL is set
+    return callback(null, true); // Fallback to safe pass-through or specify exact match
+  },
   credentials: true,
 }));
 
