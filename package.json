@@ -12,6 +12,6 @@
     "start": "npm run start --prefix backend",
     "seed": "npm run seed --prefix backend",
     "db:push": "npm run db:push --prefix backend",
-    "postinstall": "cd backend && npx prisma generate"
+    "postinstall": "cd backend && npm ci --ignore-scripts && npx prisma generate"
   }
 }
