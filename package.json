@@ -1,0 +1,9 @@
+{
+  "name": "learnsync-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix frontend && npm run build --prefix backend",
+    "postinstall": "cd backend && npx prisma generate"
+  }
+}

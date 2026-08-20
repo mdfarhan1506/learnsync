@@ -52,7 +52,25 @@ app.use('/api/rules', rulesRoutes);
 app.use('/api/quick-checks', quickCheckRoutes);
 app.use('/api/demo', demoRoutes);
 
-// Health check
+// Root & Health check routes for Vercel / Ping
+app.get('/', (_req, res) => {
+  res.json({
+    message: 'LearnSync backend is running',
+    version: '1.0.0',
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api', (_req, res) => {
+  res.json({
+    message: 'LearnSync API is running',
+    version: '1.0.0',
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
 });
@@ -63,8 +81,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 LEARNsync backend running on http://localhost:${PORT}`);
-});
+// Only start standalone listener when running directly as a script (not in serverless or imported)
+if (require.main === module && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 LEARNsync backend running on http://localhost:${PORT}`);
+  });
+}
 
 export default app;

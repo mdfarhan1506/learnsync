@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.get('/', async (req, res) => {
-  const classId = req.query.classI as string as string;
+  const classId = req.query.classId as string | undefined;
   try {
     const students = classId 
       ? await prisma.student.findMany({ where: { classId } })
