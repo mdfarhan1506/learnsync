@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          String   @default("teacher") // teacher, admin
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  classes       Class[]
+  observations  TeacherObservation[]
+  groupOverrides GroupOverride[]
+}
+
+model Class {
+  id           String   @id @default(uuid())
+  name         String
+  grade        String
+  section      String
+  subject      String
+  academicYear String
+  language     String   @default("English")
+  currentTopic String   @default("")
+  teacherId    String
+  teacher      User     @relation(fields: [teacherId], references: [id])
+  students     Student[]
+  assessments  Assessment[]
+  groups       LearningGroup[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Student {
+  id           String   @id @default(uuid())
+  rollNumber   String
+  name         String
+  classId      String
+  class        Class    @relation(fields: [classId], references: [id])
+  isDemo       Boolean  @default(false)
+  answers      StudentAnswer[]
+  submissions  AssessmentSubmission[]
+  profile      LearningProfile?
+  groupMembers LearningGroupMember[]
+  observations TeacherObservation[]
+  quickResults QuickCheckResult[]
+  progressRecords ProgressRecord[]
+  activityHistory ActivityHistory[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([classId, rollNumber])
+}
+
+model Subject {
+  id    String @id @default(uuid())
+  name  String
+  grade String
+  topics Topic[]
+}
+
+model Topic {
+  id        String  @id @default(uuid())
+  name      String
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  skills    Skill[]
+  assessments Assessment[]
+}
+
+model Skill {
+  id           String   @id @default(uuid())
+  name         String
+  topicId      String
+  topic        Topic    @relation(fields: [topicId], references: [id])
+  grade        String
+  subject      String
+  difficulty   String   @default("medium") // easy, medium, hard
+  description  String   @default("")
+  prerequisites SkillPrerequisite[] @relation("SkillPrerequisites")
+  dependents    SkillPrerequisite[] @relation("PrerequisiteOf")
+  questionMappings QuestionSkillMapping[]
+  learningProfileSkills LearningProfileSkill[]
+  interventions Intervention[]
+}
+
+model SkillPrerequisite {
+  id             String @id @default(uuid())
+  skillId        String
+  skill          Skill  @relation("SkillPrerequisites", fields: [skillId], references: [id])
+  prerequisiteId String
+  prerequisite   Skill  @relation("PrerequisiteOf", fields: [prerequisiteId], references: [id])
+}
+
+model Assessment {
+  id              String   @id @default(uuid())
+  title           String
+  classId         String
+  class           Class    @relation(fields: [classId], references: [id])
+  topicId         String
+  topic           Topic    @relation(fields: [topicId], references: [id])
+  type            String   // diagnostic, weekly, unit, quickcheck
+  status          String   @default("draft") // draft, review, published, completed
+  durationMinutes Int      @default(30)
+  language        String   @default("English")
+  difficulty      String   @default("mixed")
+  classCode       String   @unique
+  qrCodeData      String   @default("")
+  isDemo          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+  completedAt     DateTime?
+  questions       Question[]
+  submissions     AssessmentSubmission[]
+  groups          LearningGroup[]
+}
+
+model Question {
+  id             String   @id @default(uuid())
+  assessmentId   String
+  assessment     Assessment @relation(fields: [assessmentId], references: [id])
+  text           String
+  type           String   @default("mcq") // mcq, short, truefalse
+  optionA        String   @default("")
+  optionB        String   @default("")
+  optionC        String   @default("")
+  optionD        String   @default("")
+  correctAnswer  String   // A, B, C, D or text
+  explanation    String   @default("")
+  difficulty     String   @default("medium")
+  orderIndex     Int      @default(0)
+  isAiGenerated  Boolean  @default(true)
+  isApproved     Boolean  @default(false)
+  skillMappings  QuestionSkillMapping[]
+  answers        StudentAnswer[]
+  createdAt      DateTime @default(now())
+}
+
+model QuestionSkillMapping {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  skillId    String
+  skill      Skill    @relation(fields: [skillId], references: [id])
+  weight     Float    @default(1.0)
+}
+
+model AssessmentSubmission {
+  id           String   @id @default(uuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id])
+  status       String   @default("started") // started, completed
+  totalScore   Float    @default(0)
+  totalPossible Float   @default(0)
+  percentScore Float    @default(0)
+  submittedAt  DateTime?
+  answers      StudentAnswer[]
+  createdAt    DateTime @default(now())
+}
+
+model StudentAnswer {
+  id             String   @id @default(uuid())
+  submissionId   String
+  submission     AssessmentSubmission @relation(fields: [submissionId], references: [id])
+  questionId     String
+  question       Question @relation(fields: [questionId], references: [id])
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id])
+  selectedAnswer String
+  isCorrect      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model LearningProfile {
+  id           String   @id @default(uuid())
+  studentId    String   @unique
+  student      Student  @relation(fields: [studentId], references: [id])
+  overallStatus String  @default("unknown") // mastered, developing, needs_support, advanced
+  primaryGap   String   @default("") // skill name
+  secondaryGap String   @default("")
+  lastAssessmentId String @default("")
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  skills       LearningProfileSkill[]
+}
+
+model LearningProfileSkill {
+  id           String   @id @default(uuid())
+  profileId    String
+  profile      LearningProfile @relation(fields: [profileId], references: [id])
+  skillId      String
+  skill        Skill    @relation(fields: [skillId], references: [id])
+  masteryPct   Float    @default(0)
+  status       String   @default("unknown") // mastered, developing, needs_support
+  questionsAttempted Int @default(0)
+  questionsCorrect   Int @default(0)
+  hasPrereqGap Boolean  @default(false)
+  prereqGapSkill String @default("")
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([profileId, skillId])
+}
+
+model LearningGroup {
+  id             String   @id @default(uuid())
+  classId        String
+  class          Class    @relation(fields: [classId], references: [id])
+  assessmentId   String?
+  assessment     Assessment? @relation(fields: [assessmentId], references: [id])
+  name           String
+  type           String   // intervention, on_track, advanced, mixed
+  primarySkillId String   @default("")
+  primarySkillName String @default("")
+  avgMasteryPct  Float    @default(0)
+  status         String   @default("active") // active, archived
+  whyExplanation String   @default("")
+  recommendedAction String @default("")
+  colorCode      String   @default("blue")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  members        LearningGroupMember[]
+  interventions  Intervention[]
+  overrides      GroupOverride[]
+}
+
+model LearningGroupMember {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     LearningGroup @relation(fields: [groupId], references: [id])
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  addedAt   DateTime @default(now())
+  isManualOverride Boolean @default(false)
+}
+
+model GroupOverride {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     LearningGroup @relation(fields: [groupId], references: [id])
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  action    String   // moved, removed, added, merged, split
+  studentId String   @default("")
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Intervention {
+  id           String   @id @default(uuid())
+  groupId      String
+  group        LearningGroup @relation(fields: [groupId], references: [id])
+  skillId      String
+  skill        Skill    @relation(fields: [skillId], references: [id])
+  title        String
+  status       String   @default("planned") // planned, active, completed
+  startedAt    DateTime?
+  completedAt  DateTime?
+  durationMins Int      @default(10)
+  isAiGenerated Boolean @default(true)
+  createdAt    DateTime @default(now())
+  activities   InterventionActivity[]
+  quickChecks  QuickCheck[]
+}
+
+model InterventionActivity {
+  id             String   @id @default(uuid())
+  interventionId String
+  intervention   Intervention @relation(fields: [interventionId], references: [id])
+  targetGroup    String   @default("intervention") // intervention, on_track, advanced, mixed
+  title          String
+  objective      String
+  materials      String
+  steps          String   // JSON array of steps
+  examples       String   @default("")
+  differentiation String  @default("")
+  isApproved     Boolean  @default(false)
+  isAiGenerated  Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model QuickCheck {
+  id             String   @id @default(uuid())
+  interventionId String
+  intervention   Intervention @relation(fields: [interventionId], references: [id])
+  questions      String   @default("") // JSON array
+  status         String   @default("pending") // pending, active, completed
+  createdAt      DateTime @default(now())
+  completedAt    DateTime?
+  results        QuickCheckResult[]
+}
+
+model QuickCheckResult {
+  id           String   @id @default(uuid())
+  quickCheckId String
+  quickCheck   QuickCheck @relation(fields: [quickCheckId], references: [id])
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id])
+  status       String   // mastered, still_needs_practice, needs_support
+  score        Int      @default(0)
+  maxScore     Int      @default(3)
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+}
+
+model TeacherObservation {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  text      String
+  skillContext String @default("")
+  createdAt DateTime @default(now())
+}
+
+model AssessmentRule {
+  id              String   @id @default(uuid())
+  classId         String
+  masteredMin     Float    @default(80)
+  developingMin   Float    @default(50)
+  minQuestionsForSkill Int @default(2)
+  minGroupSize    Int      @default(3)
+  maxGroupSize    Int      @default(12)
+  quickCheckCount Int      @default(3)
+  requireTeacherApproval Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([classId])
+}
+
+model ProgressRecord {
+  id           String   @id @default(uuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id])
+  skillName    String
+  masteryBefore Float
+  masteryAfter  Float
+  statusBefore  String
+  statusAfter   String
+  event         String   // assessment, quickcheck, manual
+  eventId       String   @default("")
+  recordedAt    DateTime @default(now())
+}
+
+model ActivityHistory {
+  id           String   @id @default(uuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id])
+  type         String   // assessment, diagnosis, group_assignment, intervention, quickcheck, profile_update
+  title        String
+  description  String   @default("")
+  metadata     String   @default("") // JSON
+  recordedAt   DateTime @default(now())
+}
