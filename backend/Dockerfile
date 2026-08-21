@@ -27,5 +27,6 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3001
 
-# Push database schema, seed initial data if not seeded, and start server
-CMD ["sh", "-c", "npx prisma db push && node dist/seed/seed.js && npm start"]
+# Push database schema and start server (auto-seeds on empty db)
+CMD ["sh", "-c", "npx prisma db push && npm start"]
+
